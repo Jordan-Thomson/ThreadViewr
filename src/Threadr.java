@@ -18,7 +18,7 @@ public class Threadr {
 
     }
 
-    public Object[][] getThreadArray(String groupFilter) {
+    public Object[][] getThreadArray(String groupFilter, String nameFilter) {
 
         updateThreadSet();
         int index = 0;
@@ -26,7 +26,8 @@ public class Threadr {
         ArrayList<Thread> threadList = new ArrayList<>();
         for (Thread thread : threadSet) {
             if (Thread.getAllStackTraces().containsKey(thread)) {
-                if (thread.getThreadGroup().getName().toLowerCase().startsWith(groupFilter.toLowerCase()) || groupFilter.equals("")) {
+                if ((thread.getThreadGroup().getName().toLowerCase().startsWith(groupFilter.toLowerCase()) || groupFilter.equals(""))
+                && (thread.getName().toLowerCase().startsWith(nameFilter.toLowerCase()) || nameFilter.equals(""))) {
                     threadList.add(thread);
                 }
             }

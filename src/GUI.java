@@ -13,7 +13,8 @@ public class GUI extends JFrame {
     private DefaultTableModel model;
     private Object[][] threads;
     private Thread refresh;
-    private String filter = "";
+    private String filterGroup = "";
+    private String filterName = "";
 
     public GUI(Threadr threadr) {
         this.threadr = threadr;
@@ -22,7 +23,7 @@ public class GUI extends JFrame {
         panel.setLayout(new BorderLayout());
         table.setDefaultEditor(Object.class, null);
         table.setDragEnabled(false);
-        getTableModel(filter);
+        getTableModel(filterGroup, filterName);
 
         JScrollPane scrollPane = new JScrollPane(table);
         table.setPreferredScrollableViewportSize(new Dimension(500, 150));
@@ -38,8 +39,8 @@ public class GUI extends JFrame {
             int selected = table.getSelectedRow();
             threadr.interruptThread(table.getModel().getValueAt(selected,5));
             table.clearSelection();
-            getTableModel(filter);
-            getTableModel(filter);
+            getTableModel(filterGroup, filterName);
+            getTableModel(filterGroup, filterName);
         });
         buttonPanel.add(stop);
         contentPane.add(buttonPanel,BorderLayout.EAST);
@@ -60,15 +61,21 @@ public class GUI extends JFrame {
     public Component filter() {
         JTextField groupFilter = new JTextField();
         groupFilter.addActionListener(e -> {
-            filter = groupFilter.getText();
-            getTableModel(filter);
+            filterGroup = groupFilter.getText();
+            getTableModel(filterGroup, filterName);
         });
         JPanel filterPanel = new JPanel();
 
         filterPanel.setLayout(new GridLayout(0,2));
-        filterPanel.add(new JLabel("Group Filter"));
+        filterPanel.add(new JLabel("Group Filter: "));
         filterPanel.add(groupFilter);
-
+        JTextField nameFilter = new JTextField();
+        nameFilter.addActionListener(e -> {
+            filterName = nameFilter.getText();
+            getTableModel(filterGroup, filterName);
+        });
+        filterPanel.add(new JLabel("Name Filter: "));
+        filterPanel.add(nameFilter);
         return filterPanel;
     }
 
@@ -79,7 +86,7 @@ public class GUI extends JFrame {
                 while (running) {
                     try {
                         Thread.sleep(5000);
-                        getTableModel(filter);
+                        getTableModel(filterGroup, filterName);
                     } catch(InterruptedException e) {
                         this.interrupt();
                         System.out.println("Refresh stopping");
@@ -92,10 +99,10 @@ public class GUI extends JFrame {
     }
 
 
-    private void getTableModel(String groupFilter) {
+    private void getTableModel(String groupFilter, String nameFilter) {
         try {
             table.clearSelection();
-            threads = threadr.getThreadArray(groupFilter);
+            threads = threadr.getThreadArray(groupFilter, nameFilter);
             String[] headings = new String[]{"Thread Group", "Name", "State", "Priority", "ID", "Thread"};
             model = new DefaultTableModel(threads, headings);
             model.addTableModelListener(table);
