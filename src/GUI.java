@@ -2,8 +2,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 
 
 public class GUI extends JFrame {
@@ -53,16 +52,31 @@ public class GUI extends JFrame {
         });
         setSize(new Dimension(600, 450));
         setVisible(true);
-        refresh = makeRefresh();
+
+        ActionListener task = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                getTableModel(filterGroup, filterName);
+            }
+        };
+        Timer timer = new Timer(10000,task);
+        timer.setRepeats(true);
+        timer.start();
+
+
         //refresh.start();
 
     }
 
     public Component filter() {
         JTextField groupFilter = new JTextField();
-        groupFilter.addActionListener(e -> {
-            filterGroup = groupFilter.getText();
-            getTableModel(filterGroup, filterName);
+        groupFilter.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                JTextField actioned = (JTextField) e.getSource();
+                filterGroup = actioned.getText();
+                getTableModel(filterGroup,filterName);
+            }
         });
         JPanel filterPanel = new JPanel();
 
@@ -70,10 +84,18 @@ public class GUI extends JFrame {
         filterPanel.add(new JLabel("Group Filter: "));
         filterPanel.add(groupFilter);
         JTextField nameFilter = new JTextField();
-        nameFilter.addActionListener(e -> {
+        nameFilter.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                JTextField actioned = (JTextField) e.getSource();
+                filterName = actioned.getText();
+                getTableModel(filterGroup,filterName);
+            }
+        });
+        /*nameFilter.addActionListener(e -> {
             filterName = nameFilter.getText();
             getTableModel(filterGroup, filterName);
-        });
+        });*/
         filterPanel.add(new JLabel("Name Filter: "));
         filterPanel.add(nameFilter);
         return filterPanel;
