@@ -64,10 +64,11 @@ public class GUI extends JFrame {
         JButton stop = new JButton("Stop");
         stop.addActionListener(e -> {
             int selected = table.getSelectedRow();
-            threadr.interruptThread(table.getModel().getValueAt(selected,5));
-            table.clearSelection();
-            getTableModel(filterGroup, filterName);
-            getTableModel(filterGroup, filterName);
+            if (selected >= 0) {
+                threadr.interruptThread(table.getModel().getValueAt(selected, 5));
+                table.clearSelection();
+                getTableModel(filterGroup, filterName);
+            }
         });
         buttonPanel.add(stop);
         return buttonPanel;
