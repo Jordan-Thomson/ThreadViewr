@@ -7,16 +7,14 @@ import java.awt.event.*;
 
 public class GUI extends JFrame {
 
-    private Threadr threadr;
-    private JTable table = new JTable();
-    private DefaultTableModel model;
-    private Object[][] threads;
+    private final Threadr threadr;
+    private final JTable table = new JTable();
     private String filterGroup = "";
     private String filterName = "";
+    private JLabel countdownLabel = new JLabel();
 
     /**
      * Constructor to create the GUI for the thread viewer
-     * @param threadr
      */
     public GUI(Threadr threadr) {
         this.threadr = threadr;
@@ -26,6 +24,7 @@ public class GUI extends JFrame {
         contentPane.add(getThreadTablePanel(), BorderLayout.CENTER);
         contentPane.add(getStopButtonPanel(),BorderLayout.EAST);
         contentPane.add(getFilterPanel(),BorderLayout.SOUTH);
+        contentPane.add(countdownLabel,BorderLayout.NORTH);
         setTitle("Thread Viewer");
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent ev) {
@@ -36,7 +35,6 @@ public class GUI extends JFrame {
         setSize(new Dimension(600, 450));
         setVisible(true);
         createRefreshTask();
-
     }
 
     /**
@@ -52,6 +50,17 @@ public class GUI extends JFrame {
         Timer timer = new Timer(10000,task);
         timer.setRepeats(true);
         timer.start();
+        ActionListener displayTimer = new ActionListener() {
+            private int val = 10;
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                countdownLabel.setText("Refresh in: " + --val);
+                val = (val == 0 ? 10 : val);
+            }
+        };
+        Timer timer2 = new Timer(1000, displayTimer);
+        timer2.setRepeats(true);
+        timer2.start();
     }
 
     /**
@@ -120,10 +129,6 @@ public class GUI extends JFrame {
                 getTableModel(filterGroup,filterName);
             }
         });
-        /*nameFilter.addActionListener(e -> {
-            filterName = nameFilter.getText();
-            getTableModel(filterGroup, filterName);
-        });*/
         filterPanel.add(new JLabel("Name Filter: "));
         filterPanel.add(nameFilter);
         return filterPanel;
@@ -137,9 +142,9 @@ public class GUI extends JFrame {
     private void getTableModel(String groupFilter, String nameFilter) {
         try {
             table.clearSelection();
-            threads = threadr.getThreadArray(groupFilter, nameFilter);
+            Object[][] threads = threadr.getThreadArray(groupFilter, nameFilter);
             String[] headings = new String[]{"Thread Group", "Name", "State", "Priority", "ID", "Thread"};
-            model = new DefaultTableModel(threads, headings);
+            DefaultTableModel model = new DefaultTableModel(threads, headings);
             model.addTableModelListener(table);
             table.setModel(model);
             TableColumnModel tcm = table.getColumnModel();
