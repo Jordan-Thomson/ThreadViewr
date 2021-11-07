@@ -1,61 +1,52 @@
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableColumnModel;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.util.Arrays;
 
-
+/**
+ * Gui to see what's going on
+ */
 public class GUI extends JFrame {
 
     private final Threadr threadr;
-    private final JTable table = new JTable();
-    private String filterGroup = "";
-    private String filterName = "";
-    private JLabel countdownLabel = new JLabel();
+    private final JLabel countdownLabel = new JLabel();
 
     /**
-     * Constructor to create the GUI for the thread viewer
+     * Set the scene
+     * @param threadr
      */
     public GUI(Threadr threadr) {
         this.threadr = threadr;
-
-        Container contentPane = getContentPane();
-        contentPane.setLayout(new BorderLayout());
-        contentPane.add(getThreadTablePanel(), BorderLayout.CENTER);
-        contentPane.add(getStopButtonPanel(),BorderLayout.EAST);
-        contentPane.add(getFilterPanel(),BorderLayout.SOUTH);
-        contentPane.add(countdownLabel,BorderLayout.NORTH);
-        setTitle("Thread Viewer");
-        addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent ev) {
-                threadr.safeCloseThreads(null);  // interrupt any running threads
-                dispose();  // stop the program when windows 'x' is clicked
-            }
-        });
-        setSize(new Dimension(600, 450));
+        JList<String> listing = new JList<>(threadr.getModel());
+        listing.setSelectionModel(new NoSelectionModel());
+        add(new JScrollPane(listing), BorderLayout.CENTER);
+        add(filterComponent(),BorderLayout.SOUTH);
+        setPreferredSize(new Dimension(800,600));
+        setupTimers();
+        add(countdownLabel,BorderLayout.NORTH);
+        add(controlPanel(),BorderLayout.EAST);
+        pack();
         setVisible(true);
-        createRefreshTask();
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     }
 
     /**
-     * Create action listener and timer to attach to the Event Dispatch Thread to make it thread sage
+     * Create a refresh timer
      */
-    private void createRefreshTask() {
-        ActionListener task = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                getTableModel(filterGroup, filterName);
-            }
-        };
-        Timer timer = new Timer(10000,task);
+    private void setupTimers() {
+        ActionListener task = e -> threadr.updateModel();
+        Timer timer = new Timer(2000,task);
         timer.setRepeats(true);
         timer.start();
         ActionListener displayTimer = new ActionListener() {
-            private int val = 10;
+            private int val = 2;
             @Override
             public void actionPerformed(ActionEvent e) {
                 countdownLabel.setText("Refresh in: " + --val);
-                val = (val == 0 ? 10 : val);
+                val = (val == 0 ? 2 : val);
             }
         };
         Timer timer2 = new Timer(1000, displayTimer);
@@ -64,98 +55,87 @@ public class GUI extends JFrame {
     }
 
     /**
-     * Create JPanel for button to action Thread interrupts
+     * Create filter component of the display
      * @return JPanel
      */
-    private JPanel getStopButtonPanel() {
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel,BoxLayout.PAGE_AXIS));
-        JButton stop = new JButton("Stop");
-        stop.addActionListener(e -> {
-            int selected = table.getSelectedRow();
-            if (selected >= 0) {
-                threadr.interruptThread(table.getModel().getValueAt(selected, 5));
-                table.clearSelection();
-                getTableModel(filterGroup, filterName);
+    public Component filterComponent() {
+        JLabel groupLabel = new JLabel("Group Filter");
+        JTextField groupFilterField = new JTextField();
+        groupFilterField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                JTextField actioned = (JTextField) e.getSource();
+                String filterGroup = actioned.getText();
+                threadr.setGroupFilter(filterGroup);
             }
         });
-        buttonPanel.add(stop);
-        return buttonPanel;
-    }
 
-    /**
-     * Create JPanel for displaying details in a table
-     * @return JPanel
-     */
-    private JPanel getThreadTablePanel() {
+        JLabel threadLabel = new JLabel("Thread Filter");
+        JTextField threadFilterField = new JTextField();
+        threadFilterField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                JTextField actioned = (JTextField) e.getSource();
+                String filterThread = actioned.getText();
+                threadr.setThreadFilter(filterThread);
+            }
+        });
         JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        table.setDefaultEditor(Object.class, null);
-        table.setDragEnabled(false);
-        getTableModel(filterGroup, filterName);
-
-        JScrollPane scrollPane = new JScrollPane(table);
-        table.setPreferredScrollableViewportSize(new Dimension(500, 150));
-
-        panel.add(scrollPane);
+        panel.setLayout(new GridLayout(2,2));
+        panel.add(groupLabel);
+        panel.add(groupFilterField);
+        panel.add(threadLabel);
+        panel.add(threadFilterField);
         return panel;
     }
 
     /**
-     * Create JPanel for getting input to search Threads
-     * @return (Component) JPanel
+     * Create a panel with the control buttons
+     * @return JPanel
      */
-    public Component getFilterPanel() {
-        JTextField groupFilter = new JTextField();
-        groupFilter.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                JTextField actioned = (JTextField) e.getSource();
-                filterGroup = actioned.getText();
-                getTableModel(filterGroup,filterName);
-            }
-        });
-        JPanel filterPanel = new JPanel();
+    public Component controlPanel() {
 
-        filterPanel.setLayout(new GridLayout(0,2));
-        filterPanel.add(new JLabel("Group Filter: "));
-        filterPanel.add(groupFilter);
-        JTextField nameFilter = new JTextField();
-        nameFilter.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                JTextField actioned = (JTextField) e.getSource();
-                filterName = actioned.getText();
-                getTableModel(filterGroup,filterName);
+        JPanel panel = new JPanel();
+
+        panel.setLayout(new BoxLayout(panel,BoxLayout.PAGE_AXIS));
+        JButton stopButton = new JButton("Stop");
+        stopButton.addActionListener(e -> {
+            Thread[] threads = threadr.getAllThreads();
+            Object[] options = Arrays.stream(threads).map(Thread::getName).toArray();
+
+            Object option = JOptionPane.showInputDialog(null, options[0],"Menu",JOptionPane.PLAIN_MESSAGE, null,options,options[0]);
+            if (option != null) {
+                int index = Arrays.asList(options).indexOf(option);
+                threadr.tryStop(threads[index]);
             }
         });
-        filterPanel.add(new JLabel("Name Filter: "));
-        filterPanel.add(nameFilter);
-        return filterPanel;
+        panel.add(stopButton);
+        JButton philosopherButton = new JButton("Philosopher");
+        philosopherButton.addActionListener(e -> threadr.addPhilosophers());
+        panel.add(philosopherButton);
+
+
+        return panel;
     }
 
     /**
-     * Generate the table model (fill it with thread info)
-     * @param groupFilter String to filter by ThreadGroup
-     * @param nameFilter String to filter by Thread name
+     * Custom Selection Model to stop index out of bounds errors if user were to select any objects
+     * in a JList
      */
-    private void getTableModel(String groupFilter, String nameFilter) {
-        try {
-            table.clearSelection();
-            Object[][] threads = threadr.getThreadArray(groupFilter, nameFilter);
-            String[] headings = new String[]{"Thread Group", "Name", "State", "Priority", "ID", "Thread"};
-            DefaultTableModel model = new DefaultTableModel(threads, headings);
-            model.addTableModelListener(table);
-            table.setModel(model);
-            TableColumnModel tcm = table.getColumnModel();
-            tcm.removeColumn(tcm.getColumn(5));
+    private static class NoSelectionModel extends DefaultListSelectionModel {
 
-        } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("Refresh issue");
-        } catch (NullPointerException e2) {
-            System.out.println("Null pointer issue");
-        }
+        @Override
+        public void setAnchorSelectionIndex(final int anchorIndex) {}
 
+        @Override
+        public void setLeadAnchorNotificationEnabled(final boolean flag) {}
+
+        @Override
+        public void setLeadSelectionIndex(final int leadIndex) {}
+
+        @Override
+        public void setSelectionInterval(final int index0, final int index1) { }
     }
+
 
 }
