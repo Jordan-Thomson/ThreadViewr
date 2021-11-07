@@ -60,7 +60,7 @@ public class Threadr {
      * @return array of Thread
      */
     public Thread[] getAllThreads() {
-        return ThreadLister.getAllThreads();
+        return ThreadLister.getAllThreads(threadFilter,groupFilter);
     }
 
     /**

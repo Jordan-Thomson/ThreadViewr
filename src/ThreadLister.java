@@ -1,7 +1,5 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Class with static methods to get Thread Groups/Thread info
@@ -124,15 +122,20 @@ public class ThreadLister {
     }
 
     /**
-     * Helper method to gather all threads
+     * Helper method to gather all threads, will only return those matching the filter.
      * @return an array of Threads
+     * @param threadFilter Filter for threads
+     * @param groupFilter Filter for groups
      */
-    public static Thread[] getAllThreads() {
+    public static Thread[] getAllThreads(String threadFilter, String groupFilter) {
         ThreadGroup root = getRootThreadGroup();
         int numThreads = root.activeCount();
         Thread[] threads = new Thread[numThreads];
         root.enumerate(threads,true);
-        return threads;
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        List<Thread> threadList = threadSet.stream().filter(t -> t.getName().toLowerCase().contains(threadFilter.toLowerCase())).collect(Collectors.toList());
+        threadList = threadList.stream().filter(t -> t.getThreadGroup().getName().toLowerCase().contains(groupFilter.toLowerCase())).collect(Collectors.toList());
+        return threadList.toArray(new Thread[0]);
     }
 
 

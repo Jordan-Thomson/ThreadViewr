@@ -16,7 +16,6 @@ public class GUI extends JFrame {
 
     /**
      * Set the scene
-     * @param threadr
      */
     public GUI(Threadr threadr) {
         this.threadr = threadr;
@@ -103,7 +102,7 @@ public class GUI extends JFrame {
             Thread[] threads = threadr.getAllThreads();
             Object[] options = Arrays.stream(threads).map(Thread::getName).toArray();
 
-            Object option = JOptionPane.showInputDialog(null, options[0],"Menu",JOptionPane.PLAIN_MESSAGE, null,options,options[0]);
+            Object option = JOptionPane.showInputDialog(null, "Select Thread to Stop","Stop Thread",JOptionPane.PLAIN_MESSAGE, null,options,options[0]);
             if (option != null) {
                 int index = Arrays.asList(options).indexOf(option);
                 threadr.tryStop(threads[index]);
