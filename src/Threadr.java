@@ -92,11 +92,24 @@ public class Threadr {
     /**
      * Method to attempt interrupting a Thread
      * ** Note: This doesn't work on system threads, protection added to Swing SWT Threads
+     * added check on ThreadGroup so ThreadGroup can be destroyed.
      * @param thread Thread to try and interrupt
      */
     public void tryStop(Thread thread) {
         System.out.println(thread.getName() + " interrupt attempted");
         if (!thread.getName().contains("AWT")) {
+            ThreadGroup threadGroup = thread.getThreadGroup();
+            if (threadGroup.activeCount()==1) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        while(threadGroup.activeCount()>0) {
+                            // wait for the last active thread to finish
+                        }
+                        threadGroup.destroy();
+                    }
+                }).start();
+            }
             thread.interrupt();
         }
     }
