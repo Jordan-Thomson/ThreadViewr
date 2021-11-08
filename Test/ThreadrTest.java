@@ -1,3 +1,5 @@
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.swing.*;
@@ -10,7 +12,12 @@ import static org.junit.Assert.*;
 
 public class ThreadrTest {
 
-    private Threadr t = new Threadr();
+    private Threadr t;
+
+    @Before
+    public void setUp() {
+        t = new Threadr();
+    }
 
     @Test
     public void getModel() {
@@ -33,6 +40,10 @@ public class ThreadrTest {
         t.setGroupFilter("");
         t.updateModel();
         assertEquals(t.getModel().firstElement(),"Thread Group: system Max Priority: 10");
+        t.addPhilosophers();
+        t.setGroupFilter("phil");
+        t.updateModel();
+        assertEquals(t.getModel().firstElement(),"Thread Group: Philosophers Max Priority: 10");
     }
 
     @Test
@@ -65,10 +76,12 @@ public class ThreadrTest {
         t.addPhilosophers();
         Thread[] threads = t.getAllThreads();
         List<Thread> interrupted = new ArrayList<>();
+        int numStopped = 0;
         for (Thread thread : threads) {
             if (thread.getName().contains("Philosopher")) {
                 interrupted.add(thread);
                 t.tryStop(thread);
+                numStopped++;
             }
         }
         Thread.sleep(5000); // give the threads time to die.
@@ -76,7 +89,9 @@ public class ThreadrTest {
             assertFalse(thread.isAlive());
         }
         Thread[] newThreads = t.getAllThreads();
-        assertEquals(5, threads.length - newThreads.length);
+        assertEquals(numStopped, threads.length - newThreads.length);
 
     }
+
+
 }
